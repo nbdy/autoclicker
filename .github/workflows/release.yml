@@ -1,0 +1,129 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libx11-dev libxtst-dev libxrandr-dev libxi-dev \
+            libxkbcommon-dev libwayland-dev libudev-dev \
+            libxcb1-dev libxcb-shape0-dev libxcb-xfixes0-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build (release)
+        run: cargo build --release
+
+      - name: Determine package name
+        id: vars
+        shell: bash
+        run: |
+          BIN_NAME="autoclicker"
+          TAG="${GITHUB_REF_NAME}"
+          case "${{ runner.os }}" in
+            Linux)
+              EXT="tar.gz"
+              ARCH="$(uname -m)"
+              if [ "$ARCH" = "arm64" ]; then ARCH="aarch64"; fi
+              TARGET_ARCH="${ARCH}-unknown-linux-gnu"
+              ;;
+            macOS)
+              EXT="tar.gz"
+              ARCH="$(uname -m)"
+              if [ "$ARCH" = "arm64" ]; then ARCH="aarch64"; fi
+              TARGET_ARCH="${ARCH}-apple-darwin"
+              ;;
+            Windows)
+              EXT="zip"
+              # GitHub Windows runners are x86_64 (amd64)
+              TARGET_ARCH="x86_64-pc-windows-msvc"
+              ;;
+          esac
+          PKG_NAME="${BIN_NAME}-${TAG}-${TARGET_ARCH}"
+          echo "pkg_name=${PKG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "ext=${EXT}" >> "$GITHUB_OUTPUT"
+
+      - name: Strip binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          strip target/release/autoclicker || true
+
+      - name: Prepare package
+        shell: bash
+        run: |
+          mkdir -p "dist/${{ steps.vars.outputs.pkg_name }}"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            BIN="target/release/autoclicker.exe"
+          else
+            BIN="target/release/autoclicker"
+          fi
+          cp "$BIN" "dist/${{ steps.vars.outputs.pkg_name }}/"
+          cp README.md "dist/${{ steps.vars.outputs.pkg_name }}/" 2>/dev/null || true
+          if [ -f LICENSE ]; then cp LICENSE "dist/${{ steps.vars.outputs.pkg_name }}/"; fi
+          cd dist
+          if [ "${{ steps.vars.outputs.ext }}" = "zip" ]; then
+            # Use 7z on Windows runners
+            7z a "${{ steps.vars.outputs.pkg_name }}.zip" "${{ steps.vars.outputs.pkg_name }}" >/dev/null
+          else
+            tar -czf "${{ steps.vars.outputs.pkg_name }}.tar.gz" "${{ steps.vars.outputs.pkg_name }}"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.vars.outputs.pkg_name }}
+          path: |
+            dist/${{ steps.vars.outputs.pkg_name }}.${{ steps.vars.outputs.ext }}
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Show downloaded files
+        run: ls -R dist
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/*.zip
+            dist/*.tar.gz
