@@ -114,17 +114,16 @@ impl eframe::App for AutoClickerApp {
                             let eg_alt = input.modifiers.alt;
                             let eg_shift = input.modifiers.shift;
                             let eg_mac_cmd = input.modifiers.mac_cmd;
-                            if let Some(ev) = last_pressed_key(&input) {
-                                if let Some(k) = map_egui_key_to_key(ev) {
-                                    hot.ctrl = eg_ctrl;
-                                    hot.alt = eg_alt;
-                                    hot.shift = eg_shift;
-                                    hot.meta = eg_mac_cmd;
-                                    hot.key = k;
-                                    drop(s);
-                                    self.recording_hotkey = false;
-                                    self.with_settings_mut(|s| s.hotkey = hot);
-                                }
+                            if let Some(ev) = last_pressed_key(&input)
+                                && let Some(k) = map_egui_key_to_key(ev)
+                            {
+                                hot.ctrl = eg_ctrl;
+                                hot.alt = eg_alt;
+                                hot.shift = eg_shift;
+                                hot.meta = eg_mac_cmd;
+                                hot.key = k;
+                                self.recording_hotkey = false;
+                                self.with_settings_mut(|s| s.hotkey = hot);
                             }
                         } else {
                             ui.horizontal(|ui| {
@@ -178,11 +177,11 @@ impl eframe::App for AutoClickerApp {
                                 }
                             });
                             let input = ui.input(|i| i.clone());
-                            if let Some(ev) = last_pressed_key(&input) {
-                                if let Some(newk) = map_egui_key_to_key(ev) {
-                                    k = newk;
-                                    self.recording_action_key = false;
-                                }
+                            if let Some(ev) = last_pressed_key(&input)
+                                && let Some(newk) = map_egui_key_to_key(ev)
+                            {
+                                k = newk;
+                                self.recording_action_key = false;
                             }
                         } else {
                             ui.horizontal(|ui| {
