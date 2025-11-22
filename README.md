@@ -1,5 +1,11 @@
 # autoclicker
 
+[![CI](https://github.com/nbdy/autoclicker/actions/workflows/ci.yml/badge.svg)](https://github.com/nbdy/autoclicker/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/nbdy/autoclicker?sort=semver)](https://github.com/nbdy/autoclicker/releases)
+[![License](https://img.shields.io/github/license/nbdy/autoclicker)](LICENSE)
+[![Rust 2024](https://img.shields.io/badge/rust-2024-orange?logo=rust)](Cargo.toml)
+[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-blue)](#)
+
 Minimal cross‑platform autoclicker with a tiny GUI (Rust + egui/eframe + rdev/enigo).
 
 ### What it does
@@ -24,7 +30,7 @@ cargo run --release
 - On macOS you may need to grant Accessibility permissions to the terminal/app for input simulation and global hotkeys to work.
 
 ### Dependencies
-- GUI: `eframe`/`egui`
+- GUI: `eframe & egui`
 - Global hotkey/input listening: `rdev`
 - Input simulation: `enigo`
 - Settings: `serde` + `toml` + `directories`
