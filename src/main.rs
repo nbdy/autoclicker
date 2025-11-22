@@ -16,7 +16,11 @@ fn main() -> eframe::Result<()> {
             .with_min_inner_size(egui::vec2(280.0, 120.0)),
         ..Default::default()
     };
-    eframe::run_native("Autoclicker", native_options, Box::new(|_| Ok(Box::new(app))))
+    eframe::run_native(
+        "Autoclicker",
+        native_options,
+        Box::new(|_| Ok(Box::new(app))),
+    )
 }
 
 fn setup_tracing() {

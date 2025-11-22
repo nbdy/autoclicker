@@ -33,12 +33,22 @@ pub struct Hotkey {
 
 impl Hotkey {
     pub fn default_toggle() -> Self {
-        Self { ctrl: true, alt: false, shift: false, meta: false, key: Key::F8 }
+        Self {
+            ctrl: true,
+            alt: false,
+            shift: false,
+            meta: false,
+            key: Key::F8,
+        }
     }
 
     #[must_use]
     pub fn matches_combo(&self, ctrl: bool, alt: bool, shift: bool, meta: bool, key: &Key) -> bool {
-        self.ctrl == ctrl && self.alt == alt && self.shift == shift && self.meta == meta && &self.key == key
+        self.ctrl == ctrl
+            && self.alt == alt
+            && self.shift == shift
+            && self.meta == meta
+            && &self.key == key
     }
 }
 

@@ -1,12 +1,12 @@
 use std::path::PathBuf;
-use std::sync::{mpsc, Arc, RwLock};
+use std::sync::{Arc, RwLock, mpsc};
 use std::time::Duration;
 
 use eframe::egui;
 
 use crate::hotkey::start_hotkey_listener;
 use crate::keymap::map_egui_key_to_key;
-use crate::settings::{config_file_path, save_settings, Action, Key, MouseButton, Settings};
+use crate::settings::{Action, Key, MouseButton, Settings, config_file_path, save_settings};
 use crate::worker::start_click_worker;
 
 #[derive(Debug)]
@@ -58,14 +58,12 @@ impl AutoClickerApp {
 }
 
 fn last_pressed_key(input: &egui::InputState) -> Option<egui::Key> {
-    input
-        .events
-        .iter()
-        .rev()
-        .find_map(|e| match e {
-            egui::Event::Key { key, pressed: true, .. } => Some(*key),
-            _ => None,
-        })
+    input.events.iter().rev().find_map(|e| match e {
+        egui::Event::Key {
+            key, pressed: true, ..
+        } => Some(*key),
+        _ => None,
+    })
 }
 
 impl eframe::App for AutoClickerApp {
@@ -89,7 +87,11 @@ impl eframe::App for AutoClickerApp {
                     ui.label("Status");
                     let is_active = { *self.active_flag.read().unwrap() };
                     ui.horizontal(|ui| {
-                        let (dot, color) = if is_active { ("●", egui::Color32::GREEN) } else { ("●", egui::Color32::DARK_RED) };
+                        let (dot, color) = if is_active {
+                            ("●", egui::Color32::GREEN)
+                        } else {
+                            ("●", egui::Color32::DARK_RED)
+                        };
                         ui.label(egui::RichText::new(dot).color(color));
                         ui.label(if is_active { "ON" } else { "OFF" });
                     });
@@ -147,9 +149,16 @@ impl eframe::App for AutoClickerApp {
 
                     ui.label("Details");
                     if action_is_mouse {
-                        let mut btn = match action { Action::Mouse(b) => b, _ => MouseButton::Left };
+                        let mut btn = match action {
+                            Action::Mouse(b) => b,
+                            _ => MouseButton::Left,
+                        };
                         egui::ComboBox::from_id_salt("mouse_button")
-                            .selected_text(match btn { MouseButton::Left => "Left", MouseButton::Right => "Right", MouseButton::Middle => "Middle" })
+                            .selected_text(match btn {
+                                MouseButton::Left => "Left",
+                                MouseButton::Right => "Right",
+                                MouseButton::Middle => "Middle",
+                            })
                             .show_ui(ui, |ui| {
                                 ui.selectable_value(&mut btn, MouseButton::Left, "Left");
                                 ui.selectable_value(&mut btn, MouseButton::Right, "Right");
@@ -157,7 +166,10 @@ impl eframe::App for AutoClickerApp {
                             });
                         action = Action::Mouse(btn);
                     } else {
-                        let mut k = match action { Action::Keyboard(k) => k, _ => Key::Space };
+                        let mut k = match action {
+                            Action::Keyboard(k) => k,
+                            _ => Key::Space,
+                        };
                         if self.recording_action_key {
                             ui.horizontal(|ui| {
                                 ui.colored_label(egui::Color32::YELLOW, "Recording…");
@@ -177,12 +189,29 @@ impl eframe::App for AutoClickerApp {
                                 egui::ComboBox::from_id_salt("keyboard_key")
                                     .selected_text(k.to_str().to_string())
                                     .show_ui(ui, |ui| {
-                                        for f in [Key::F6, Key::F7, Key::F8, Key::F9, Key::F10, Key::F11, Key::F12].iter() {
+                                        for f in [
+                                            Key::F6,
+                                            Key::F7,
+                                            Key::F8,
+                                            Key::F9,
+                                            Key::F10,
+                                            Key::F11,
+                                            Key::F12,
+                                        ]
+                                        .iter()
+                                        {
                                             ui.selectable_value(&mut k, f.clone(), f.to_str());
                                         }
-                                        for c in ['A','S','D','F','J','K','L',';','Q','W','E','R','T','Y','U','I','O','P'] {
+                                        for c in [
+                                            'A', 'S', 'D', 'F', 'J', 'K', 'L', ';', 'Q', 'W', 'E',
+                                            'R', 'T', 'Y', 'U', 'I', 'O', 'P',
+                                        ] {
                                             if c.is_ascii_alphabetic() {
-                                                ui.selectable_value(&mut k, Key::Char(c), c.to_string());
+                                                ui.selectable_value(
+                                                    &mut k,
+                                                    Key::Char(c),
+                                                    c.to_string(),
+                                                );
                                             }
                                         }
                                         ui.selectable_value(&mut k, Key::Space, "Space");
@@ -210,12 +239,22 @@ impl eframe::App for AutoClickerApp {
                         ui.horizontal(|ui| {
                             ui.label("ms");
                             let ms_changed = ui
-                                .add_sized([90.0, 22.0], egui::DragValue::new(&mut ms).speed(1.0).range(1.0..=10_000.0))
+                                .add_sized(
+                                    [90.0, 22.0],
+                                    egui::DragValue::new(&mut ms)
+                                        .speed(1.0)
+                                        .range(1.0..=10_000.0),
+                                )
                                 .changed();
                             ui.add_space(8.0);
                             ui.label("cps");
                             let cps_changed = ui
-                                .add_sized([90.0, 22.0], egui::DragValue::new(&mut cps).speed(0.1).range(0.1..=1000.0))
+                                .add_sized(
+                                    [90.0, 22.0],
+                                    egui::DragValue::new(&mut cps)
+                                        .speed(0.1)
+                                        .range(0.1..=1000.0),
+                                )
                                 .changed();
 
                             if ms_changed {

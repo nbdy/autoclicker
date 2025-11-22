@@ -1,10 +1,10 @@
 use std::sync::{Arc, RwLock};
 
-use rdev::{listen, Event, EventType, Key as RdevKey};
+use rdev::{Event, EventType, Key as RdevKey, listen};
 use tracing::{error, info};
 
 use crate::keymap::map_rdev_to_key;
-use crate::settings::{Settings};
+use crate::settings::Settings;
 
 pub fn start_hotkey_listener(settings: Arc<RwLock<Settings>>, active: Arc<RwLock<bool>>) {
     std::thread::spawn(move || {
@@ -14,37 +14,36 @@ pub fn start_hotkey_listener(settings: Arc<RwLock<Settings>>, active: Arc<RwLock
         let mut meta = false;
         let mut toggled_for_combo: bool = false;
 
-        let callback = move |event: Event| {
-            match event.event_type {
-                EventType::KeyPress(key) => {
-                    update_mods_on_key(key, true, &mut ctrl, &mut alt, &mut shift, &mut meta);
+        let callback = move |event: Event| match event.event_type {
+            EventType::KeyPress(key) => {
+                update_mods_on_key(key, true, &mut ctrl, &mut alt, &mut shift, &mut meta);
 
-                    if let Some(main_key) = map_rdev_to_key(key) {
-                        let hotkey = { settings.read().unwrap().hotkey.clone() };
-                        if hotkey.matches_combo(ctrl, alt, shift, meta, &main_key) && !toggled_for_combo {
-                            toggled_for_combo = true;
-                            let mut a = active.write().unwrap();
-                            *a = !*a;
-                            info!("Toggled autoclicker: {}", if *a { "ON" } else { "OFF" });
-                        }
+                if let Some(main_key) = map_rdev_to_key(key) {
+                    let hotkey = { settings.read().unwrap().hotkey.clone() };
+                    if hotkey.matches_combo(ctrl, alt, shift, meta, &main_key) && !toggled_for_combo
+                    {
+                        toggled_for_combo = true;
+                        let mut a = active.write().unwrap();
+                        *a = !*a;
+                        info!("Toggled autoclicker: {}", if *a { "ON" } else { "OFF" });
                     }
                 }
-                EventType::KeyRelease(key) => {
-                    update_mods_on_key(key, false, &mut ctrl, &mut alt, &mut shift, &mut meta);
+            }
+            EventType::KeyRelease(key) => {
+                update_mods_on_key(key, false, &mut ctrl, &mut alt, &mut shift, &mut meta);
 
-                    if let Some(main_key) = map_rdev_to_key(key) {
-                        let hot = { settings.read().unwrap().hotkey.clone() };
-                        if hot.key == main_key {
-                            toggled_for_combo = false;
-                        }
-                    }
-
-                    if !ctrl && !alt && !shift && !meta {
+                if let Some(main_key) = map_rdev_to_key(key) {
+                    let hot = { settings.read().unwrap().hotkey.clone() };
+                    if hot.key == main_key {
                         toggled_for_combo = false;
                     }
                 }
-                _ => {}
+
+                if !ctrl && !alt && !shift && !meta {
+                    toggled_for_combo = false;
+                }
             }
+            _ => {}
         };
 
         if let Err(e) = listen(callback) {
